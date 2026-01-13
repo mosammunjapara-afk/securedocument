@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f4;
+            display: flex;
+        }
+
+        /* SAME SIDEBAR AS OWNER */
+        .sidebar {
+            width: 220px;
+            background: #1a1a1a;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .sidebar h2 {
+            color: #f39c12;
+            font-size: 1.2rem;
+        }
+
+        .sidebar button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 12px;
+            background: #34495e;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            border-radius: 4px;
+        }
+
+        .sidebar button:hover {
+            background: #f39c12;
+        }
+
+        /* MAIN */
+        .main {
+            margin-left: 240px;
+            padding: 30px;
+            width: calc(100% - 240px);
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #2c3e50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        input {
+            width: 100%;
+            padding: 6px;
+        }
+
+        .btn {
+            padding: 7px 12px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .update-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #c0392b;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>ADMIN PANEL</h2>
+    <button onclick="location.reload()">User Records</button>
+    <button onclick="logout()" style="background:#c0392b;margin-top:20px;">Logout</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+    <div class="container">
+        <h1>User Data Management</h1>
+        <p>Admin can view, edit and delete user information.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Age</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function loadAdminData() {
+    const res = await fetch('/admin_view');
+    const result = await res.json();
+    const tbody = document.getElementById('adminTableBody');
+    tbody.innerHTML = '';
+
+    result.data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.info_id}</td>
+            <td>${row.username}</td>
+            <td><input id="name-${row.info_id}" value="${row.name}"></td>
+            <td><input id="email-${row.info_id}" value="${row.email}"></td>
+            <td><input type="number" id="age-${row.info_id}" value="${row.age}"></td>
+            <td>
+                <button class="btn update-btn" onclick="updateUser(${row.info_id})">Update</button>
+                <button class="btn delete-btn" onclick="deleteUser(${row.info_id})">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function updateUser(id) {
+    const name = document.getElementById(`name-${id}`).value;
+    const email = document.getElementById(`email-${id}`).value;
+    const age = document.getElementById(`age-${id}`).value;
+
+    const res = await fetch('/admin_edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ info_id: id, name, email, age })
+    });
+
+    const result = await res.json();
+    alert(result.message);
+    loadAdminData();
+}
+
+async function deleteUser(id) {
+    if (!confirm('Delete this record permanently?')) return;
+
+    await fetch('/admin_delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ info_id: id })
+    });
+
+    loadAdminData();
+}
+
+function logout() {
+    fetch('/logout').then(() => window.location.href = '/login');
+}
+
+loadAdminData();
+</script>
+
+</body>
+</html>

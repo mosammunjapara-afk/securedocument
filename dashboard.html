@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Fill Details</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; display: flex; background-color: #f4f4f4; }
+        .sidebar { width: 200px; background: #333; color: white; height: 100vh; padding: 20px; box-sizing: border-box; }
+        .main { padding: 40px; flex-grow: 1; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 400px; }
+        input, button { display: block; width: 100%; margin: 15px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+        .message { color: red; margin-bottom: 10px; }
+        .success { color: green; }
+        .data-display { margin-top: 20px; padding: 10px; border: 1px solid #ddd; background: #f9f9f9; }
+        .approved { color: green; font-weight: bold; }
+        .pending { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <button onclick="window.location.href='/dashboard'">My Profile</button>
+        <button onclick="logout()" style="background:#dc3545">Logout</button>
+    </div>
+    <div class="main">
+        <div class="container">
+            <h1>Complete Your Profile</h1>
+            <div id="message"></div>
+            <input type="text" id="userName" placeholder="Full Name">
+            <input type="email" id="userEmail" placeholder="Email Address">
+            <input type="number" id="userAge" placeholder="Age" min="0" max="150">
+            <button onclick="saveDetails()">Save Information</button>
+            
+            <hr>
+            <h2>My Submitted Data</h2>
+            <button onclick="viewData()">View My Data</button>
+            <div id="dataDisplay" class="data-display" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        async function saveDetails() {
+            const messageDiv = document.getElementById('message');
+            const data = {
+                name: document.getElementById('userName').value,
+                email: document.getElementById('userEmail').value,
+                age: document.getElementById('userAge').value
+            };
+
+            const response = await fetch('/fill_info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            messageDiv.textContent = result.message;
+            messageDiv.className = result.success ? 'success' : 'message';
+            
+            if (result.success) {
+                document.querySelectorAll('input').forEach(i => i.value = '');
+            }
+        }
+
+        async function viewData() {
+            const response = await fetch('/user_view');
+            const result = await response.json();
+            const displayDiv = document.getElementById('dataDisplay');
+            
+            if (result.success) {
+                const statusClass = result.data.status === 'Approved' ? 'approved' : 'pending';
+                displayDiv.innerHTML = `
+                    <p><strong>Name:</strong> ${result.data.name}</p>
+                    <p><strong>Email:</strong> ${result.data.email}</p>
+                    <p><strong>Age:</strong> ${result.data.age}</p>
+                    <p><strong>Status:</strong> <span class="${statusClass}">${result.data.status}</span></p>
+                `;
+                displayDiv.style.display = 'block';
+            } else {
+                displayDiv.innerHTML = `<p class="message">${result.message}</p>`;
+                displayDiv.style.display = 'block';
+            }
+        }
+
+        function logout() {
+            fetch('/logout').then(() => window.location.href = '/login');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisor Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; display: flex; }
+        .sidebar { width: 200px; background: #333; color: white; height: 100vh; position: fixed; left: 0; top: 0; padding: 20px; box-sizing: border-box; }
+        .sidebar h2 { margin-top: 0; }
+        .sidebar button { display: block; width: 100%; margin: 10px 0; padding: 10px; background: #555; color: white; border: none; cursor: pointer; }
+        .sidebar button:hover { background: #777; }
+        .main { margin-left: 220px; padding: 20px; width: calc(100% - 220px); }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .duplicate-row { background-color: #f8d7da !important; color: #721c24; font-weight: bold; }
+        .edit-btn { background: #ffc107; color: black; padding: 5px 10px; border: none; cursor: pointer; }
+        .delete-btn { background: #dc3545; color: white; padding: 5px 10px; border: none; cursor: pointer; }
+        button { padding: 10px; border: none; cursor: pointer; background: #007bff; color: white; }
+        .message { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Navigation</h2>
+        <button onclick="window.location.href='/registration'">Registration</button>
+        <button onclick="window.location.href='/login'">Login</button>
+        <button onclick="window.location.href='/admin'">Admin</button>
+        <button onclick="window.location.href='/supervisor'">supervisor</button>
+        <button onclick="window.location.href='/owner'">owner</button>
+        
+    </div>
+    <div class="main">
+        <div class="container">
+            <h1>Supervisor Dashboard</h1>
+            <p>Records highlighted in <strong>Red</strong> are potential duplicates (same Name or Email).</p>
+            <div id="message"></div>
+            
+            <button onclick="loadSupervisorData()">Refresh Data</button>
+            
+            <table id="supervisorTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Age</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            
+            <br>
+            <button onclick="logout()" style="background:#6c757d">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        async function loadSupervisorData() {
+            const response = await fetch('/supervisor_view');
+            const result = await response.json();
+            const tbody = document.querySelector('#supervisorTable tbody');
+            const messageDiv = document.getElementById('message');
+            
+            if (result.success) {
+                tbody.innerHTML = '';
+                result.data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    if (row.is_duplicate) {
+                        tr.className = 'duplicate-row';
+                    }
+                    tr.innerHTML = `
+                        <td>${row.username}</td>
+                        <td><input type="text" value="${row.name}" id="name-${row.info_id}"></td>
+                        <td><input type="email" value="${row.email}" id="email-${row.info_id}"></td>
+                        <td><input type="number" value="${row.age}" id="age-${row.info_id}"></td>
+                        <td>
+                            <button class="edit-btn" onclick="editData(${row.info_id})">Fix</button>
+                            <button class="delete-btn" onclick="deleteData(${row.info_id})">Del</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                messageDiv.textContent = result.message;
+            }
+        }
+
+        async function editData(infoId) {
+            const name = document.getElementById(`name-${infoId}`).value;
+            const email = document.getElementById(`email-${infoId}`).value;
+            const age = document.getElementById(`age-${infoId}`).value;
+
+            const response = await fetch('/supervisor_edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ info_id: infoId, name, email, age })
+            });
+            const result = await response.json();
+            alert(result.message);
+            loadSupervisorData();
+        }
+
+        async function deleteData(infoId) {
+            if (!confirm('Delete this duplicate/incorrect entry?')) return;
+            const response = await fetch('/supervisor_delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ info_id: infoId })
+            });
+            const result = await response.json();
+            loadSupervisorData();
+        }
+
+        function logout() {
+            fetch('/logout').then(() => window.location.href = '/login');
+        }
+
+        // Load on startup
+        loadSupervisorData();
+    </script>
+</body>
+</html>
